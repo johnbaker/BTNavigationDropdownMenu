@@ -161,9 +161,9 @@ public class BTNavigationDropdownMenu: UIView {
     }
     
     public var didSelectItemAtIndexHandler: ((indexPath: Int) -> ())?
+    private(set) public var configuration = BTConfiguration()
     
     private var navigationController: UINavigationController?
-    private var configuration = BTConfiguration()
     private var topSeparator: UIView!
     private var menuButton: UIButton!
     private var menuTitle: UILabel!
@@ -178,10 +178,12 @@ public class BTNavigationDropdownMenu: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    public init(title: String, items: [AnyObject]) {
+    
+    
+    public init(title: String, items: [AnyObject], navigationController: UINavigationController) {
         
         // Navigation controller
-        self.navigationController = UIApplication.sharedApplication().keyWindow?.rootViewController?.topMostViewController?.navigationController
+        self.navigationController = navigationController
         
         // Get titleSize
         let titleSize = (title as NSString).sizeWithAttributes([NSFontAttributeName:self.configuration.cellTextLabelFont])
@@ -198,7 +200,7 @@ public class BTNavigationDropdownMenu: UIView {
         
         // Init properties
         self.setupDefaultConfiguration()
-
+        
         // Init button as navigation title
         self.menuButton = UIButton(frame: frame)
         self.menuButton.addTarget(self, action: "menuButtonTapped:", forControlEvents: UIControlEvents.TouchUpInside)
@@ -253,6 +255,13 @@ public class BTNavigationDropdownMenu: UIView {
         // By default, hide menu view
         self.menuWrapper.hidden = true
     }
+
+    public convenience init(title: String, items: [AnyObject]) {
+        // Navigation controller
+       let navController = UIApplication.sharedApplication().keyWindow?.rootViewController?.topMostViewController?.navigationController
+        
+        self.init(title: title, items: items, navigationController: navController!)
+    }
     
     public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
         if keyPath == "frame" {
@@ -304,8 +313,8 @@ public class BTNavigationDropdownMenu: UIView {
         UIView.animateWithDuration(
             self.configuration.animationDuration * 1.5,
             delay: 0,
-            usingSpringWithDamping: 0.7,
-            initialSpringVelocity: 0.5,
+            usingSpringWithDamping: self.configuration.springDamping,
+            initialSpringVelocity: self.configuration.springVelocity,
             options: [],
             animations: {
                 self.tableView.frame.origin.y = CGFloat(-300)
@@ -324,8 +333,8 @@ public class BTNavigationDropdownMenu: UIView {
         UIView.animateWithDuration(
             self.configuration.animationDuration * 1.5,
             delay: 0,
-            usingSpringWithDamping: 0.7,
-            initialSpringVelocity: 0.5,
+            usingSpringWithDamping: self.configuration.springDamping,
+            initialSpringVelocity: self.configuration.springVelocity,
             options: [],
             animations: {
                 self.tableView.frame.origin.y = CGFloat(-200)
@@ -364,21 +373,23 @@ public class BTNavigationDropdownMenu: UIView {
 }
 
 // MARK: BTConfiguration
-class BTConfiguration {
-    var menuTitleColor: UIColor?
-    var cellHeight: CGFloat!
-    var cellBackgroundColor: UIColor?
-    var cellSeparatorColor: UIColor?
-    var cellTextLabelColor: UIColor?
-    var cellTextLabelFont: UIFont!
-    var cellSelectionColor: UIColor?
-    var checkMarkImage: UIImage!
-    var arrowImage: UIImage!
-    var arrowPadding: CGFloat!
-    var animationDuration: NSTimeInterval!
-    var maskBackgroundColor: UIColor!
-    var maskBackgroundOpacity: CGFloat!
-    
+public class BTConfiguration {
+    public var menuTitleColor: UIColor?
+    public var cellHeight: CGFloat!
+    public var cellBackgroundColor: UIColor?
+    public var cellSeparatorColor: UIColor?
+    public var cellTextLabelColor: UIColor?
+    public var cellTextLabelFont: UIFont!
+   public var cellSelectionColor: UIColor?
+    public var checkMarkImage: UIImage!
+   public var arrowImage: UIImage!
+   public var arrowPadding: CGFloat!
+   public var animationDuration: NSTimeInterval!
+   public var maskBackgroundColor: UIColor!
+   public var maskBackgroundOpacity: CGFloat!
+   public var springDamping: CGFloat!
+   public var springVelocity: CGFloat!
+
     init() {
         self.defaultValue()
     }
@@ -405,6 +416,8 @@ class BTConfiguration {
         self.arrowPadding = 15
         self.maskBackgroundColor = UIColor.blackColor()
         self.maskBackgroundOpacity = 0.3
+        self.springDamping = 0.7
+        self.springVelocity = 0.5
     }
 }
 
@@ -454,6 +467,7 @@ class BTTableView: UITableView, UITableViewDelegate, UITableViewDataSource {
     
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = BTTableViewCell(style: UITableViewCellStyle.Default, reuseIdentifier: "Cell", configuration: self.configuration)
+        cell.selectionStyle = .Default
         cell.textLabel?.text = self.items[indexPath.row] as? String
         cell.checkmarkIcon.hidden = (indexPath.row == selectedIndexPath) ? false : true
         
@@ -465,14 +479,14 @@ class BTTableView: UITableView, UITableViewDelegate, UITableViewDataSource {
         selectedIndexPath = indexPath.row
         self.selectRowAtIndexPathHandler!(indexPath: indexPath.row)
         self.reloadData()
-        let cell = tableView.cellForRowAtIndexPath(indexPath) as? BTTableViewCell
-        cell?.contentView.backgroundColor = self.configuration.cellSelectionColor
+ //       let cell = tableView.cellForRowAtIndexPath(indexPath) as? BTTableViewCell
+ //       cell?.contentView.backgroundColor = self.configuration.cellSelectionColor
     }
     
     func tableView(tableView: UITableView, didDeselectRowAtIndexPath indexPath: NSIndexPath) {
         let cell = tableView.cellForRowAtIndexPath(indexPath) as? BTTableViewCell
         cell?.checkmarkIcon.hidden = true
-        cell?.contentView.backgroundColor = self.configuration.cellBackgroundColor
+   //     cell?.contentView.backgroundColor = self.configuration.cellBackgroundColor
     }
 }
 
@@ -485,17 +499,17 @@ class BTTableViewCell: UITableViewCell {
     
     init(style: UITableViewCellStyle, reuseIdentifier: String?, configuration: BTConfiguration) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        
+        self.backgroundColor = UIColor.clearColor()
         self.configuration = configuration
         
         // Setup cell
         cellContentFrame = CGRectMake(0, 0, (UIApplication.sharedApplication().keyWindow?.frame.width)!, self.configuration.cellHeight)
         self.contentView.backgroundColor = self.configuration.cellBackgroundColor
         self.selectionStyle = UITableViewCellSelectionStyle.None
-        self.textLabel!.textAlignment = NSTextAlignment.Left
+        self.textLabel!.textAlignment = NSTextAlignment.Center
         self.textLabel!.textColor = self.configuration.cellTextLabelColor
         self.textLabel!.font = self.configuration.cellTextLabelFont
-        self.textLabel!.frame = CGRectMake(20, 0, cellContentFrame.width, cellContentFrame.height)
+        self.textLabel!.frame = CGRectMake(0, 0, cellContentFrame.width, cellContentFrame.height)
         
         
         // Checkmark icon
