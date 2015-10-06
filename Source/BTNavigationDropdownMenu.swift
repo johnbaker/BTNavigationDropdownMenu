@@ -160,8 +160,26 @@ public class BTNavigationDropdownMenu: UIView {
         }
     }
     
+    public var springDamping: CGFloat! {
+        get {
+            return self.configuration.springDamping
+        }
+        set(value) {
+            self.configuration.springDamping = value
+        }
+    }
+    
+    public var springVelocity: CGFloat! {
+        get {
+            return self.configuration.springVelocity
+        }
+        set(value) {
+            self.configuration.springVelocity = value
+        }
+    }
+    
     public var didSelectItemAtIndexHandler: ((indexPath: Int) -> ())?
-    private(set) public var configuration = BTConfiguration()
+    private var configuration = BTConfiguration()
     
     private var navigationController: UINavigationController?
     private var topSeparator: UIView!
@@ -170,17 +188,15 @@ public class BTNavigationDropdownMenu: UIView {
     private var menuArrow: UIImageView!
     private var backgroundView: UIView!
     private var tableView: BTTableView!
-    private var items: [AnyObject]!
+    private(set) public var items: [String]!
     private var isShown: Bool!
     private var menuWrapper: UIView!
     
     required public init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    
-    
-    public init(title: String, items: [AnyObject], navigationController: UINavigationController) {
+
+    public init(title: String, items: [String], navigationController: UINavigationController) {
         
         // Navigation controller
         self.navigationController = navigationController
@@ -256,7 +272,7 @@ public class BTNavigationDropdownMenu: UIView {
         self.menuWrapper.hidden = true
     }
 
-    public convenience init(title: String, items: [AnyObject]) {
+    public convenience init(title: String, items: [String]) {
         // Navigation controller
        let navController = UIApplication.sharedApplication().keyWindow?.rootViewController?.topMostViewController?.navigationController
         
@@ -358,6 +374,17 @@ public class BTNavigationDropdownMenu: UIView {
         })
     }
     
+    public func setSelectedIndex(index: Int) {
+        let text = items[index]
+        setMenuTitle(text)
+        tableView.selectedIndexPath = index
+        layoutSubviews()
+    }
+    
+    public func getSelectedIndex() -> Int {
+        return tableView.selectedIndexPath
+    }
+    
     func setMenuTitle(title: String) {
         self.menuTitle.text = title
     }
@@ -430,7 +457,7 @@ class BTTableView: UITableView, UITableViewDelegate, UITableViewDataSource {
     
     // Private properties
     private var items: [AnyObject]!
-    private var selectedIndexPath: Int!
+    var selectedIndexPath: Int!
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
